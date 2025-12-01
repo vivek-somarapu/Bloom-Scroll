@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { BottomNav } from "@/components/bottom-nav";
@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getProgress, getMostExploredTopic, resetProgress, UserProgress } from "@/lib/progress";
 
 function SettingsContent() {
   const router = useRouter();
@@ -28,6 +29,12 @@ function SettingsContent() {
   const [showDurationDialog, setShowDurationDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [sessionDuration, setSessionDuration] = useState([10]);
+  const [progress, setProgress] = useState<UserProgress | null>(null);
+
+  useEffect(() => {
+    const userProgress = getProgress();
+    setProgress(userProgress);
+  }, []);
 
   const handleZenModeToggle = (checked: boolean) => {
     setZenMode(checked);
@@ -39,11 +46,14 @@ function SettingsContent() {
   };
 
   const handleResetData = () => {
-    // Clear localStorage
+    // Clear all data including progress
+    resetProgress();
     if (typeof window !== "undefined") {
       localStorage.clear();
     }
+    setProgress(null);
     setShowResetDialog(false);
+    router.push("/");
   };
 
   return (
@@ -131,6 +141,40 @@ function SettingsContent() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Progress Stats */}
+          {progress && progress.totalFactsViewed > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Progress</CardTitle>
+                <CardDescription>
+                  Track your learning journey
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Total Facts</p>
+                    <p className="text-2xl font-light">{progress.totalFactsViewed}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Current Streak</p>
+                    <p className="text-2xl font-light">
+                      {progress.currentStreak} {progress.currentStreak === 1 ? 'day' : 'days'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Sessions</p>
+                    <p className="text-2xl font-light">{progress.sessionCompletions}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Favorite Topic</p>
+                    <p className="text-2xl font-light">{getMostExploredTopic(progress) || 'None'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Session */}
           <Card>

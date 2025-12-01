@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CategoryType } from "@/lib/types";
+import { updateProgress, getProgress } from "@/lib/progress";
 
 function FeedContent() {
   const router = useRouter();
@@ -38,6 +39,7 @@ function FeedContent() {
   const [loadedCount, setLoadedCount] = useState(10);
   const [showEndModal, setShowEndModal] = useState(false);
   const [viewedFacts, setViewedFacts] = useState<Set<string>>(new Set());
+  const [sessionFactsViewed, setSessionFactsViewed] = useState(0);
   
   // Handle client-side mounting
   useEffect(() => {
@@ -62,6 +64,7 @@ function FeedContent() {
     
     if (!isActive && duration === 0) {
       startSession(parseInt(durationParam));
+      setSessionFactsViewed(0); // Reset session fact count on new session
     }
   }, [categoryId, durationParam, isActive, duration, startSession, router]);
 
@@ -73,19 +76,24 @@ function FeedContent() {
 
   // Track viewed facts when index changes
   useEffect(() => {
-    if (currentIndex >= 0 && currentIndex < facts.length) {
-      const factId = facts[currentIndex]?.id;
-      if (factId) {
+    if (currentIndex >= 0 && currentIndex < facts.length && categoryId) {
+      const fact = facts[currentIndex];
+      if (fact && !viewedFacts.has(fact.id)) {
+        // Update global progress
+        updateProgress(fact.id, categoryId);
+        
+        // Update local session count
+        setSessionFactsViewed((prev) => prev + 1);
+        
+        // Mark as viewed
         setViewedFacts((prev) => {
-          if (prev.has(factId)) return prev; // Skip if already tracked
           const newSet = new Set(prev);
-          newSet.add(factId);
+          newSet.add(fact.id);
           return newSet;
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex]); // Only track when index changes, facts array is stable
+  }, [currentIndex, categoryId, facts, viewedFacts]);
 
   // Auto-scroll when Auto Mode is enabled
   useEffect(() => {
@@ -248,7 +256,7 @@ function FeedContent() {
                 You've explored all facts in this category!
               </p>
               <Button
-                onClick={() => router.push("/explore")}
+                onClick={() => router.push("/")}
                 size="lg"
               >
                 Explore More Topics
@@ -266,8 +274,23 @@ function FeedContent() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Session Complete</DialogTitle>
-            <DialogDescription>
-              You've reached your session goal. Would you like to continue exploring?
+            <DialogDescription className="space-y-3 pt-4">
+              <div className="text-base text-foreground">
+                Nice work! You learned {sessionFactsViewed} fact{sessionFactsViewed === 1 ? '' : 's'} this session.
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {(() => {
+                  const progress = getProgress();
+                  const parts = [`That's ${progress.factsViewedToday} fact${progress.factsViewedToday === 1 ? '' : 's'} today`];
+                  if (progress.currentStreak > 1) {
+                    parts.push(`${progress.currentStreak} day streak ✨`);
+                  }
+                  return parts.join(' • ');
+                })()}
+              </div>
+              <div className="text-sm text-muted-foreground pt-2">
+                Would you like to continue exploring?
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col sm:flex-row gap-2">

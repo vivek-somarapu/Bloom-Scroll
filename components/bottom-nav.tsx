@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Compass, Settings } from "lucide-react";
+import { Home, Settings } from "lucide-react";
 import { Button } from "./ui/button";
 
 export function BottomNav() {
@@ -9,8 +9,7 @@ export function BottomNav() {
   const router = useRouter();
 
   const navItems = [
-    { icon: Home, label: "My Feed", path: "/feed" },
-    { icon: Compass, label: "Explore", path: "/explore" },
+    { icon: Home, label: "Home", path: "/" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
